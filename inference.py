@@ -21,14 +21,16 @@ from openai import OpenAI
 # ── Config ────────────────────────────────────────────────────────────────────
 API_BASE_URL = os.getenv("API_BASE_URL", "https://router.huggingface.co/v1")
 MODEL_NAME   = os.getenv("MODEL_NAME",   "Qwen/Qwen2.5-72B-Instruct")
-API_KEY      = os.getenv("HF_TOKEN") or os.getenv("API_KEY", "")
-ENV_URL      = os.getenv("ENV_URL",      "http://localhost:7860")
+HF_TOKEN     = os.getenv("HF_TOKEN")
+API_KEY      = os.getenv("API_KEY") or os.getenv("HF_TOKEN") or "sk-no-key"
+ENV_URL = os.getenv("ENV_BASE_URL") or os.getenv("ENV_URL", "http://localhost:7860")
+ENV_URL = ENV_URL.rstrip("/")
 BENCHMARK    = "sqloptimenv"
 MAX_STEPS    = 5
 
 TASKS = ["easy_syntax_fix", "medium_subquery_to_join", "hard_multi_table_optimize"]
 
-client = OpenAI(base_url=API_BASE_URL, api_key=API_KEY)
+client = OpenAI(api_key=API_KEY, base_url=API_BASE_URL)
 
 
 # ── Env HTTP helpers ──────────────────────────────────────────────────────────
