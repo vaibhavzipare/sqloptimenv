@@ -19,17 +19,16 @@ import requests
 from openai import OpenAI
 
 # ── Config ────────────────────────────────────────────────────────────────────
-API_BASE_URL = os.getenv("API_BASE_URL", "https://router.huggingface.co/v1")
-MODEL_NAME   = os.getenv("MODEL_NAME",   "Qwen/Qwen2.5-72B-Instruct")
-HF_TOKEN     = os.getenv("HF_TOKEN")
-API_KEY      = os.getenv("API_KEY") or os.getenv("HF_TOKEN") or "sk-no-key"
-ENV_URL = os.getenv("ENV_BASE_URL") or os.getenv("ENV_URL", "http://localhost:7860")
-ENV_URL = ENV_URL.rstrip("/")
+API_BASE_URL = os.getenv("API_BASE_URL") or "https://router.huggingface.co/v1"
+MODEL_NAME   = os.getenv("MODEL_NAME") or "Qwen/Qwen2.5-72B-Instruct"
+API_KEY      = os.getenv("HF_TOKEN") or os.getenv("API_KEY")
+ENV_URL      = (os.getenv("ENV_BASE_URL") or os.getenv("ENV_URL") or "http://localhost:7860").rstrip("/")
 BENCHMARK    = "sqloptimenv"
 MAX_STEPS    = 5
 
 TASKS = ["easy_syntax_fix", "medium_subquery_to_join", "hard_multi_table_optimize"]
 
+client = OpenAI(base_url=API_BASE_URL, api_key=API_KEY)
 
 
 # ── Env HTTP helpers ──────────────────────────────────────────────────────────
@@ -126,20 +125,21 @@ def run_episode(task_id: str) -> float:
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────
-
 if __name__ == "__main__":
     task_arg = os.getenv("TASK_ID")
     tasks_to_run = [task_arg] if task_arg else TASKS
 
     all_scores = {}
     for task_id in tasks_to_run:
+        print(f"[START] task={task_id} env={BENCHMARK} model={MODEL_NAME}", flush=True)
         try:
             s = run_episode(task_id)
         except Exception as e:
-            print(f"[END] success=false steps=0 score=0.00 rewards=", flush=True)
+            print(f"[DEBUG] Exception in task {task_id}: {e}", flush=True)
+            print(f"[END] success=false steps=0 score=0.00 rewards=0.00", flush=True)
             s = 0.0
         all_scores[task_id] = s
-        print("", flush=True)  # blank line between tasks
+        print("", flush=True)
 
     print("=== Baseline Results ===")
     for t, s in all_scores.items():
