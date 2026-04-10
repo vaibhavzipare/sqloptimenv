@@ -21,7 +21,8 @@ from openai import OpenAI
 # ── Config ────────────────────────────────────────────────────────────────────
 API_BASE_URL = os.getenv("API_BASE_URL", "https://router.huggingface.co/v1")
 MODEL_NAME   = os.getenv("MODEL_NAME",   "Qwen/Qwen2.5-72B-Instruct")
-API_KEY      = os.getenv("HF_TOKEN") or os.getenv("API_KEY", "")
+HF_TOKEN     = os.getenv("HF_TOKEN")
+API_KEY      = HF_TOKEN
 ENV_URL      = os.getenv("ENV_URL",      "http://localhost:7860")
 BENCHMARK    = "sqloptimenv"
 MAX_STEPS    = 5
