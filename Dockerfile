@@ -1,20 +1,21 @@
 FROM python:3.11-slim
 
-# HuggingFace Spaces runs as non-root user 1000
 RUN useradd -m -u 1000 appuser
 
 WORKDIR /app
 
-# Install dependencies first (cache layer)
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+COPY pyproject.toml .
+COPY uv.lock .
 
-# Copy source
+RUN pip install --no-cache-dir uv && \
+    uv pip install --system --no-cache openenv-core>=0.2.0 fastapi uvicorn[standard] pydantic openai requests pyyaml
+
 COPY --chown=appuser:appuser . .
+
+RUN pip install --no-cache-dir -e . --no-deps
 
 USER appuser
 
-# HF Spaces expects port 7860
 EXPOSE 7860
 
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "7860"]
+CMD ["uvicorn", "server.app:app", "--host", "0.0.0.0", "--port", "7860"]

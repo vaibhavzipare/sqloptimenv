@@ -133,7 +133,7 @@ def _rows_equal(a, b) -> bool:
 # ─── Task definitions ────────────────────────────────────────────────────────
 
 def _grade_easy(con, original_query, rewritten_query):
-    from environment import Reward
+    
     # Correct answer: fix the syntax error — query must run and return same rows as reference
     reference_sql = """
         SELECT c.name, COUNT(o.id) AS order_count
@@ -146,25 +146,25 @@ def _grade_easy(con, original_query, rewritten_query):
     try:
         ref_rows, _ = _run(con, reference_sql)
     except Exception as e:
-        return Reward(score=0.0, correct=False, faster=False,
+        return dict(score=0.0, correct=False, faster=False,
                       error=f"Reference query failed: {e}")
 
     try:
         rew_rows, rew_ms = _run(con, rewritten_query)
     except Exception as e:
-        return Reward(score=0.0, correct=False, faster=False,
+        return dict(score=0.0, correct=False, faster=False,
                       error=f"Rewritten query error: {e}")
 
     if not _rows_equal(ref_rows, rew_rows):
-        return Reward(score=0.3, correct=False, faster=False,
+        return dict(score=0.3, correct=False, faster=False,
                       error="Query runs but returns wrong results.")
 
-    return Reward(score=1.0, correct=True, faster=True,
+    return dict(score=1.0, correct=True, faster=True,
                   error=None, speedup=1.0)
 
 
 def _grade_medium(con, original_query, rewritten_query):
-    from environment import Reward
+    
     # Original uses correlated subquery; good answer uses JOIN — measure both
     reference_sql = """
         SELECT c.name, c.city,
@@ -180,19 +180,19 @@ def _grade_medium(con, original_query, rewritten_query):
         ref_rows, _ = _run(con, reference_sql)
         orig_rows, orig_ms = _run(con, original_query)
     except Exception as e:
-        return Reward(score=0.0, correct=False, faster=False,
+        return dict(score=0.0, correct=False, faster=False,
                       error=f"Setup error: {e}")
 
     try:
         rew_rows, rew_ms = _run(con, rewritten_query)
     except Exception as e:
-        return Reward(score=0.0, correct=False, faster=False,
+        return dict(score=0.0, correct=False, faster=False,
                       error=f"Rewritten query error: {e}")
 
     correct = _rows_equal(ref_rows, rew_rows)
     if not correct:
         # Partial credit if it at least runs without error
-        return Reward(score=0.2, correct=False, faster=False,
+        return dict(score=0.2, correct=False, faster=False,
                       error="Query runs but returns wrong results.")
 
     speedup = orig_ms / rew_ms if rew_ms > 0 else 1.0
@@ -203,12 +203,12 @@ def _grade_medium(con, original_query, rewritten_query):
     else:
         score = 0.65  # correct but not faster — still decent
 
-    return Reward(score=round(score, 3), correct=correct,
+    return dict(score=round(score, 3), correct=correct,
                   faster=faster, speedup=round(speedup, 3))
 
 
 def _grade_hard(con, original_query, rewritten_query):
-    from environment import Reward
+    
     reference_sql = """
         SELECT
             p.category,
@@ -226,18 +226,18 @@ def _grade_hard(con, original_query, rewritten_query):
         ref_rows, _ = _run(con, reference_sql)
         orig_rows, orig_ms = _run(con, original_query)
     except Exception as e:
-        return Reward(score=0.0, correct=False, faster=False,
+        return dict(score=0.0, correct=False, faster=False,
                       error=f"Setup error: {e}")
 
     try:
         rew_rows, rew_ms = _run(con, rewritten_query)
     except Exception as e:
-        return Reward(score=0.0, correct=False, faster=False,
+        return dict(score=0.0, correct=False, faster=False,
                       error=f"Rewritten query error: {e}")
 
     correct = _rows_equal(ref_rows, rew_rows)
     if not correct:
-        return Reward(score=0.15, correct=False, faster=False,
+        return dict(score=0.15, correct=False, faster=False,
                       error="Query runs but returns wrong results.")
 
     speedup = orig_ms / rew_ms if rew_ms > 0 else 1.0
@@ -248,7 +248,7 @@ def _grade_hard(con, original_query, rewritten_query):
     else:
         score = 0.6
 
-    return Reward(score=round(score, 3), correct=correct,
+    return dict(score=round(score, 3), correct=correct,
                   faster=faster, speedup=round(speedup, 3))
 
 

@@ -1,6 +1,6 @@
 [build-system]
 requires = ["setuptools>=68", "wheel"]
-build-backend = "setuptools.backends.legacy:build"
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "sqloptimenv"
@@ -8,6 +8,7 @@ version = "1.0.0"
 description = "OpenEnv environment for SQL query optimization"
 requires-python = ">=3.10"
 dependencies = [
+    "openenv-core>=0.2.0",
     "fastapi>=0.115.0",
     "uvicorn[standard]>=0.30.6",
     "pydantic>=2.7.4",
@@ -16,5 +17,9 @@ dependencies = [
     "pyyaml>=6.0.2",
 ]
 
+[project.scripts]
+server = "server.app:app"
+
 [tool.setuptools.packages.find]
 where = ["."]
+include = ["sqloptimenv*", "server*"]
