@@ -1,0 +1,58 @@
+name: sqloptimenv
+version: "1.0.0"
+description: >
+  An OpenEnv environment where an AI agent receives broken or slow SQL queries
+  and must rewrite them to be syntactically correct and/or more performant.
+  Graders evaluate both correctness (same result set) and execution speed.
+
+tags:
+  - openenv
+  - sql
+  - optimization
+  - code-repair
+  - database
+
+tasks:
+  - id: easy_syntax_fix
+    difficulty: easy
+    description: Fix two syntax errors in a simple GROUP BY query.
+
+  - id: medium_subquery_to_join
+    difficulty: medium
+    description: Replace a correlated subquery with an efficient JOIN + HAVING.
+
+  - id: hard_multi_table_optimize
+    difficulty: hard
+    description: >
+      Eliminate redundant scalar subqueries and rewrite implicit Cartesian joins
+      as explicit JOIN … ON syntax across four tables.
+
+observation_space:
+  type: object
+  fields:
+    task_id: string
+    description: string
+    schema_sql: string
+    original_query: string
+    hint: string | null
+    step: integer
+    last_error: string | null
+    last_reward: float
+
+action_space:
+  type: object
+  fields:
+    rewritten_query: string
+
+reward_range: [0.0, 1.0]
+
+endpoints:
+  reset: POST /reset
+  step:  POST /step
+  state: GET  /state
+
+authors:
+  - name: Innovatex
+runtime:
+  language: python
+  version: "3.11"
