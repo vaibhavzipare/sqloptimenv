@@ -30,7 +30,6 @@ MAX_STEPS    = 5
 
 TASKS = ["easy_syntax_fix", "medium_subquery_to_join", "hard_multi_table_optimize"]
 
-client = OpenAI(api_key=API_KEY, base_url=API_BASE_URL)
 
 
 # ── Env HTTP helpers ──────────────────────────────────────────────────────────
@@ -54,7 +53,8 @@ Your job: rewrite the query to fix errors and/or improve performance.
 Reply with ONLY the corrected SQL query — no explanation, no markdown fences, just raw SQL."""
 
 def get_rewrite(obs: dict) -> str:
-    user_msg = f"""Schema:
+     client = OpenAI(api_key=API_KEY, base_url=API_BASE_URL)
+     user_msg = f"""Schema:
 {obs['schema_sql']}
 
 Original query:
