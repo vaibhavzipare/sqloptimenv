@@ -51,22 +51,19 @@ SYSTEM_PROMPT = """You are an expert SQL query optimizer.
 You will receive a broken or slow SQL query along with its schema.
 Your job: rewrite the query to fix errors and/or improve performance.
 Reply with ONLY the corrected SQL query — no explanation, no markdown fences, just raw SQL."""
-
 def get_rewrite(obs: dict) -> str:
-     client = OpenAI(api_key=API_KEY, base_url=API_BASE_URL)
-     user_msg = f"""Schema:
-{obs['schema_sql']}
+    client = OpenAI(api_key=API_KEY, base_url=API_BASE_URL)
 
-Original query:
-{obs['original_query']}
-
-Task description:
-{obs['description']}
-"""
+    parts = [
+        f"Schema:\n{obs['schema_sql']}",
+        f"Original query:\n{obs['original_query']}",
+        f"Task description:\n{obs['description']}",
+    ]
     if obs.get("hint"):
-        user_msg += f"\nHint: {obs['hint']}"
+        parts.append(f"Hint: {obs['hint']}")
     if obs.get("last_error"):
-        user_msg += f"\nPrevious attempt error: {obs['last_error']}"
+        parts.append(f"Previous attempt error: {obs['last_error']}")
+    user_msg = "\n\n".join(parts)
 
     response = client.chat.completions.create(
         model=MODEL_NAME,
@@ -78,7 +75,6 @@ Task description:
         max_tokens=512,
     )
     return response.choices[0].message.content.strip()
-
 
 # ── Episode runner ────────────────────────────────────────────────────────────
 
