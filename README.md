@@ -1,3 +1,13 @@
+title: SQLOptimEnv
+emoji: 🗄️
+colorFrom: blue
+colorTo: green
+sdk: docker
+pinned: false
+tags:
+  - openenv
+
+
 # SQLOptimEnv 🗄️⚡
 
 > An **OpenEnv**-compliant RL environment where an AI agent receives broken or slow SQL queries and must rewrite them to be correct and performant.
