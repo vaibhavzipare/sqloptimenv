@@ -1,6 +1,3 @@
-"""
-server/app.py — Required OpenEnv server entry point
-"""
 from openenv.core import create_app
 from sqloptimenv.environment import SQLOptimEnv, SQLAction, SQLObservation
 
