@@ -19,9 +19,9 @@ import requests
 from openai import OpenAI
 
 # ── Config ────────────────────────────────────────────────────────────────────
-API_BASE_URL = os.getenv("API_BASE_URL") or "https://router.huggingface.co/v1"
+API_BASE_URL = os.environ["API_BASE_URL"]  # STRICT (no fallback)
 MODEL_NAME   = os.getenv("MODEL_NAME") or "Qwen/Qwen2.5-72B-Instruct"
-API_KEY      = os.getenv("HF_TOKEN") or os.getenv("API_KEY")
+API_KEY = os.environ["API_KEY"]  # STRICT (no fallback)
 ENV_URL      = (os.getenv("ENV_BASE_URL") or os.getenv("ENV_URL") or "http://localhost:7860").rstrip("/")
 BENCHMARK    = "sqloptimenv"
 MAX_STEPS    = 5
@@ -51,8 +51,6 @@ You will receive a broken or slow SQL query along with its schema.
 Your job: rewrite the query to fix errors and/or improve performance.
 Reply with ONLY the corrected SQL query — no explanation, no markdown fences, just raw SQL."""
 def get_rewrite(obs: dict) -> str:
-    client = OpenAI(api_key=API_KEY, base_url=API_BASE_URL)
-
     parts = [
         f"Schema:\n{obs['schema_sql']}",
         f"Original query:\n{obs['original_query']}",
@@ -62,6 +60,7 @@ def get_rewrite(obs: dict) -> str:
         parts.append(f"Hint: {obs['hint']}")
     if obs.get("last_error"):
         parts.append(f"Previous attempt error: {obs['last_error']}")
+
     user_msg = "\n\n".join(parts)
 
     response = client.chat.completions.create(
@@ -73,6 +72,7 @@ def get_rewrite(obs: dict) -> str:
         temperature=0.2,
         max_tokens=512,
     )
+
     return response.choices[0].message.content.strip()
 
 # ── Episode runner ────────────────────────────────────────────────────────────
