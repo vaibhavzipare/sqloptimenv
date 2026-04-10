@@ -20,15 +20,18 @@ from openai import OpenAI
 
 # ── Config ────────────────────────────────────────────────────────────────────
 API_BASE_URL = os.environ["API_BASE_URL"]  # STRICT (no fallback)
-MODEL_NAME   = os.getenv("MODEL_NAME") or "Qwen/Qwen2.5-72B-Instruct"
-API_KEY = os.environ["API_KEY"]  # STRICT (no fallback)
+
+MODEL_NAME = os.getenv("MODEL_NAME") or "Qwen/Qwen2.5-72B-Instruct"
+API_KEY = os.getenv("API_KEY") or os.getenv("HF_TOKEN")
 ENV_URL      = (os.getenv("ENV_BASE_URL") or os.getenv("ENV_URL") or "http://localhost:7860").rstrip("/")
 BENCHMARK    = "sqloptimenv"
 MAX_STEPS    = 5
 
 TASKS = ["easy_syntax_fix", "medium_subquery_to_join", "hard_multi_table_optimize"]
-
-client = OpenAI(base_url=API_BASE_URL, api_key=API_KEY)
+client = OpenAI(
+    base_url=API_BASE_URL,
+    api_key=API_KEY
+)
 
 
 # ── Env HTTP helpers ──────────────────────────────────────────────────────────
