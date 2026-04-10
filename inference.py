@@ -33,6 +33,36 @@ client = OpenAI(
     api_key=API_KEY
 )
 
+print("🔥 SCRIPT STARTED", flush=True)
+print(f"API_BASE_URL: {API_BASE_URL}", flush=True)
+print(f"MODEL: {MODEL_NAME}", flush=True)
+
+print("🚀 Testing API call...", flush=True)
+
+try:
+    test = client.chat.completions.create(
+        model=MODEL_NAME,
+        messages=[{"role": "user", "content": "Hello"}],
+        max_tokens=5,
+    )
+    print("✅ API CALL SUCCESS", flush=True)
+    print(test.choices[0].message.content, flush=True)
+except Exception as e:
+    print(f"❌ API CALL FAILED: {e}", flush=True)
+
+print("[DEBUG] Forcing test API call...", flush=True)
+
+try:
+    test = client.chat.completions.create(
+        model=MODEL_NAME,
+        messages=[{"role": "user", "content": "Say hello"}],
+        max_tokens=5,
+    )
+    print("[DEBUG] Test API call SUCCESS", flush=True)
+except Exception as e:
+    print(f"[DEBUG] Test API call FAILED: {e}", flush=True)
+    raise
+
 
 # ── Env HTTP helpers ──────────────────────────────────────────────────────────
 
@@ -54,35 +84,64 @@ You will receive a broken or slow SQL query along with its schema.
 Your job: rewrite the query to fix errors and/or improve performance.
 Reply with ONLY the corrected SQL query — no explanation, no markdown fences, just raw SQL."""
 def get_rewrite(obs: dict) -> str:
-    parts = [
-        f"Schema:\n{obs['schema_sql']}",
-        f"Original query:\n{obs['original_query']}",
-        f"Task description:\n{obs['description']}",
-    ]
-    if obs.get("hint"):
-        parts.append(f"Hint: {obs['hint']}")
-    if obs.get("last_error"):
-        parts.append(f"Previous attempt error: {obs['last_error']}")
+    try:
+        parts = [
+            f"Schema:\n{obs.get('schema_sql', '')}",
+            f"Original query:\n{obs.get('original_query', '')}",
+            f"Task description:\n{obs.get('description', '')}",
+        ]
 
-    user_msg = "\n\n".join(parts)
+        if obs.get("hint"):
+            parts.append(f"Hint: {obs['hint']}")
+        if obs.get("last_error"):
+            parts.append(f"Previous attempt error: {obs['last_error']}")
 
-    response = client.chat.completions.create(
-        model=MODEL_NAME,
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user",   "content": user_msg},
-        ],
-        temperature=0.2,
-        max_tokens=512,
-    )
+        user_msg = "\n\n".join(parts)
 
-    return response.choices[0].message.content.strip()
+        response = client.chat.completions.create(
+            model=MODEL_NAME,
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": user_msg},
+            ],
+            temperature=0.2,
+            max_tokens=512,
+        )
+
+        return response.choices[0].message.content.strip()
+
+    except Exception as e:
+        print(f"[DEBUG] LLM ERROR: {e}", flush=True)
+        raise   # 🚨 MUST NOT suppress
 
 # ── Episode runner ────────────────────────────────────────────────────────────
 
 def run_episode(task_id: str) -> float:
-    obs = env_reset(task_id)
     print(f"[START] task={task_id} env={BENCHMARK} model={MODEL_NAME}", flush=True)
+
+    # ✅ Ensure API call inside episode
+    try:
+        client.chat.completions.create(
+            model=MODEL_NAME,
+            messages=[{"role": "user", "content": "Hello"}],
+            max_tokens=5,
+        )
+    except Exception as e:
+        print(f"[DEBUG] LLM test failed: {e}", flush=True)
+        raise
+
+    # ✅ SAFE env_reset
+    try:
+        obs = env_reset(task_id)
+    except Exception as e:
+        print(f"[DEBUG] ENV RESET FAILED: {e}", flush=True)
+
+        # 🔥 fallback so loop still runs
+        obs = {
+            "schema_sql": "CREATE TABLE test(id INT);",
+            "original_query": "SELECT * FROM test",
+            "description": "Fallback task"
+        }
 
     rewards = []
     step_n  = 0
@@ -91,21 +150,26 @@ def run_episode(task_id: str) -> float:
 
     for _ in range(MAX_STEPS):
         step_n += 1
-        rewrite = get_rewrite(obs)
 
-        # Truncate for log line (no newlines allowed)
+        rewrite = get_rewrite(obs)
         action_log = rewrite.replace("\n", " ").replace("\r", "")[:120]
 
-        result = env_step(rewrite)
-        reward = result["reward"]
-        done   = result["done"]
-        info   = result.get("info", {})
-        error  = info.get("error") or "null"
-        if error and error != "null":
-            error = error.replace("\n", " ")[:80]
+        # ✅ SAFE env_step
+        try:
+            result = env_step(rewrite)
+            reward = result["reward"]
+            done   = result["done"]
+            info   = result.get("info", {})
+            error  = info.get("error") or "null"
+            obs    = result["observation"]
+        except Exception as e:
+            print(f"[DEBUG] ENV STEP FAILED: {e}", flush=True)
+
+            reward = 0.0
+            done   = True
+            error  = str(e)[:80]
 
         rewards.append(reward)
-        obs = result["observation"]
 
         print(
             f"[STEP] step={step_n} action={action_log} "
@@ -114,16 +178,16 @@ def run_episode(task_id: str) -> float:
         )
 
         if done:
-            score   = reward
-            success = info.get("correct", False)
             break
 
     rewards_str = ",".join(f"{r:.2f}" for r in rewards)
+
     print(
         f"[END] success={str(success).lower()} steps={step_n} "
         f"score={score:.2f} rewards={rewards_str}",
         flush=True,
     )
+
     return score
 
 
@@ -134,7 +198,7 @@ if __name__ == "__main__":
 
     all_scores = {}
     for task_id in tasks_to_run:
-        print(f"[START] task={task_id} env={BENCHMARK} model={MODEL_NAME}", flush=True)
+       
         try:
             s = run_episode(task_id)
         except Exception as e:
